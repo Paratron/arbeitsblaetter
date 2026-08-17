@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Arbeitsblätter</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#152A45">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Arbeitsblätter">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<style>
+  :root{
+    --ink:#0F1E36;
+    --chrome:#152A45;
+    --chrome-2:#22405F;
+    --chrome-line:#2E4E71;
+    --bg:#C6D2DF;
+    --paper:#FFFFFF;
+    --accent:#2F6BFF;
+    --answer:#12369E;
+    --danger:#C0392B;
+    --muted:#7E8DA0;
+    --kb:0px;
+    --ui: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, "Segoe UI", sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%; margin:0; overflow:hidden;}
+  body{
+    font-family:var(--ui);
+    background:var(--bg); color:var(--ink);
+    -webkit-user-select:none; user-select:none;
+    -webkit-text-size-adjust:100%;
+  }
+  button{font-family:inherit; font-size:17px; font-weight:600; border:0; background:none; color:inherit; cursor:pointer;}
+  input{font-family:inherit;}
+
+  /* ---------- Bars ---------- */
+  .bar{
+    background:var(--chrome); color:#fff;
+    display:flex; align-items:center; gap:8px;
+    padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;
+    padding-left:calc(env(safe-area-inset-left) + 14px);
+    padding-right:calc(env(safe-area-inset-right) + 14px);
+    flex:0 0 auto;
+  }
+  .bar h1{font-size:21px; margin:0; font-weight:700; letter-spacing:.2px;}
+  .btn{
+    min-height:46px; padding:0 16px; border-radius:12px;
+    background:var(--chrome-2); color:#fff;
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    white-space:nowrap;
+  }
+  .btn:active{background:#2C5480;}
+  .btn.primary{background:var(--accent);}
+  .btn.primary:active{background:#2559D8;}
+  .btn.ghost{background:transparent; box-shadow:inset 0 0 0 2px var(--chrome-line);}
+  .btn[disabled]{opacity:.32; pointer-events:none;}
+  .btn.icon{padding:0; width:46px;}
+  .group{display:flex; gap:2px; background:var(--chrome-2); border-radius:12px; overflow:hidden;}
+  .group .btn{border-radius:0; background:transparent;}
+  .group .lbl{display:flex; align-items:center; padding:0 6px; font-size:15px; font-variant-numeric:tabular-nums; color:#BFD0E4; min-width:52px; justify-content:center;}
+  .spacer{flex:1 1 auto;}
+
+  /* ---------- Screens ---------- */
+  .screen{position:fixed; inset:0; display:none; flex-direction:column;}
+  .screen.on{display:flex;}
+
+  /* ---------- Liste ---------- */
+  #listScroll{flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:18px calc(env(safe-area-inset-left) + 18px) calc(env(safe-area-inset-bottom) + 32px);}
+  #grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(210px,1fr)); gap:18px;}
+  .card{background:var(--paper); border-radius:16px; overflow:hidden; box-shadow:0 2px 6px rgba(15,30,54,.16); display:flex; flex-direction:column;}
+  .card .thumbwrap{aspect-ratio:3/4; background:#EDF1F6; overflow:hidden; display:block; width:100%; border:0; padding:0;}
+  .card img{width:100%; height:100%; object-fit:cover; display:block;}
+  .card .meta{padding:10px 12px 12px; display:flex; align-items:flex-end; gap:8px;}
+  .card .t{flex:1; min-width:0;}
+  .card .t b{display:block; font-size:16px; line-height:1.25; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .card .t span{font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums;}
+  .card .del{width:38px; height:38px; border-radius:10px; background:#F1F4F8; color:var(--danger); font-size:19px; flex:0 0 auto;}
+  .empty{max-width:30em; margin:12vh auto 0; text-align:center; color:#4B5C71;}
+  .empty h2{font-size:24px; margin:0 0 10px;}
+  .empty p{font-size:17px; line-height:1.5; margin:0 0 24px;}
+  #quota{margin-top:26px; font-size:13px; color:#6C7C90; text-align:center;}
+
+  /* ---------- Editor ---------- */
+  #titleIn{
+    flex:1; min-width:80px; max-width:420px;
+    background:var(--chrome-2); color:#fff; border:0; border-radius:12px;
+    height:46px; padding:0 14px; font-size:17px; font-weight:600;
+    -webkit-user-select:text; user-select:text;
+  }
+  #titleIn::placeholder{color:#8FA6C0;}
+  #area{
+    position:relative; flex:1; overflow:hidden;
+    background:var(--bg); touch-action:none;
+  }
+  #area.placing{cursor:crosshair;}
+  #sheet{position:absolute; top:0; left:0; transform-origin:0 0; will-change:transform; background:#fff; box-shadow:0 1px 12px rgba(15,30,54,.28);}
+  #hint{
+    position:absolute; left:50%; transform:translateX(-50%);
+    top:calc(12px); background:rgba(21,42,69,.94); color:#fff;
+    padding:11px 18px; border-radius:12px; font-size:16px; font-weight:600;
+    display:none; z-index:40; pointer-events:none;
+  }
+  #area.placing #hint{display:block;}
+
+  .field{position:absolute; z-index:10;}
+  .field textarea{
+    display:block; width:100%; margin:0;
+    background:rgba(255,255,255,.92);
+    color:var(--answer);
+    border:0; border-radius:3px;
+    padding:2px 4px;
+    font-family:var(--ui); font-weight:600; line-height:1.28;
+    resize:none; overflow:hidden;
+    -webkit-user-select:text; user-select:text;
+    outline:0; touch-action:auto;
+    box-shadow:0 0 0 1px rgba(18,54,158,.18);
+  }
+  .field.sel textarea{box-shadow:0 0 0 2px var(--accent);}
+  .field .grip, .field .handle{
+    position:absolute; display:none; z-index:2;
+    background:var(--accent); color:#fff;
+    align-items:center; justify-content:center;
+    border-radius:9px; box-shadow:0 1px 3px rgba(0,0,0,.3);
+    font-size:15px; line-height:1;
+  }
+  .field.sel .grip, .field.sel .handle{display:flex;}
+  .field .grip{left:-44px; top:0; width:38px; height:38px; touch-action:none;}
+  .field .handle{right:-19px; top:calc(50% - 19px); width:38px; height:38px; touch-action:none;}
+
+  #fieldbar{
+    position:absolute; left:0; right:0; bottom:0; z-index:60;
+    background:var(--chrome); color:#fff;
+    display:none; align-items:center; gap:8px;
+    padding:9px calc(env(safe-area-inset-left) + 14px) calc(9px + env(safe-area-inset-bottom));
+    transform:translateY(calc(-1 * var(--kb)));
+  }
+  #fieldbar.on{display:flex;}
+  #fieldbar .note{font-size:14px; color:#A9BDD4; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+
+  #loader{position:fixed; inset:0; background:rgba(198,210,223,.9); display:none; align-items:center; justify-content:center; z-index:90; font-size:18px; font-weight:600;}
+  #loader.on{display:flex;}
+
+  @media (prefers-reduced-motion: no-preference){
+    .btn{transition:background .12s;}
+  }
+  @media (max-width:700px){
+    .bar{gap:6px; padding-left:10px; padding-right:10px;}
+    .btn{padding:0 12px; min-height:44px;}
+    .hideNarrow{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= LISTE ================= -->
+<section id="scrList" class="screen on">
+  <div class="bar">
+    <h1>Arbeitsblätter</h1>
+    <div class="spacer"></div>
+    <button class="btn primary" id="btnNew">+ Neues Foto</button>
+  </div>
+  <div id="listScroll">
+    <div id="grid"></div>
+    <div class="empty" id="emptyBox" hidden>
+      <h2>Noch kein Arbeitsblatt</h2>
+      <p>Mach ein Foto von einem Arbeitsblatt. Danach kannst du überall auf dem Blatt Textfelder setzen und deine Antworten tippen.</p>
+      <button class="btn primary" id="btnNew2" style="background:var(--accent)">+ Neues Foto</button>
+    </div>
+    <div id="quota"></div>
+  </div>
+</section>
+
+<!-- ================= EDITOR ================= -->
+<section id="scrEdit" class="screen">
+  <div class="bar">
+    <button class="btn ghost" id="btnBack">‹ Blätter</button>
+    <input id="titleIn" type="text" placeholder="Titel, z. B. Deutsch Lesetext" autocapitalize="sentences" spellcheck="false">
+    <div class="spacer"></div>
+    <div class="group">
+      <button class="btn icon" id="btnZoomOut" aria-label="Kleiner">−</button>
+      <span class="lbl" id="zoomLbl">100%</span>
+      <button class="btn icon" id="btnZoomIn" aria-label="Größer">+</button>
+      <button class="btn hideNarrow" id="btnFit">Ganzes Blatt</button>
+    </div>
+    <button class="btn primary" id="btnAdd">+ Textfeld</button>
+  </div>
+
+  <div id="area">
+    <div id="sheet"><img id="sheetImg" alt=""></div>
+    <div id="hint">Tippe auf die Stelle, an der das Textfeld beginnen soll</div>
+    <div id="fieldbar">
+      <div class="group">
+        <button class="btn" id="btnSmaller">A−</button>
+        <span class="lbl" id="sizeLbl">–</span>
+        <button class="btn" id="btnBigger">A+</button>
+      </div>
+      <button class="btn ghost" id="btnNarrow">◀▶ enger</button>
+      <button class="btn ghost" id="btnWide">◀▶ breiter</button>
+      <span class="note" id="fieldNote">Ziehen am blauen Griff verschiebt das Feld</span>
+      <button class="btn" id="btnDel" style="background:var(--danger)">Feld löschen</button>
+      <button class="btn ghost" id="btnDone">Fertig</button>
+    </div>
+  </div>
+</section>
+
+<div id="loader">Foto wird vorbereitet …</div>
+<input type="file" id="fileIn" accept="image/*" hidden>
+
+<script>
+"use strict";
+
+/* ============================================================
+   Speicher: IndexedDB.  meta = alles außer Foto, photos = Blobs
+   ============================================================ */
+const DB_NAME = "arbeitsblaetter", DB_VER = 1;
+let _db = null;
+function db(){
+  if (_db) return Promise.resolve(_db);
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, DB_VER);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      if (!d.objectStoreNames.contains("meta"))   d.createObjectStore("meta",   {keyPath:"id"});
+      if (!d.objectStoreNames.contains("photos")) d.createObjectStore("photos");
+    };
+    r.onsuccess = () => { _db = r.result; res(_db); };
+    r.onerror  = () => rej(r.error);
+  });
+}
+function tx(store, mode, fn){
+  return db().then(d => new Promise((res, rej) => {
+    const t = d.transaction(store, mode);
+    const out = fn(t.objectStore(store));
+    t.oncomplete = () => res(out instanceof IDBRequest ? out.result : out);
+    t.onerror = () => rej(t.error);
+    t.onabort = () => rej(t.error);
+  }));
+}
+const store = {
+  allMeta:   ()      => tx("meta", "readonly",  s => s.getAll()),
+  getMeta:   (id)    => tx("meta", "readonly",  s => s.get(id)),
+  putMeta:   (m)     => tx("meta", "readwrite", s => s.put(m)),
+  delMeta:   (id)    => tx("meta", "readwrite", s => s.delete(id)),
+  getPhoto:  (id)    => tx("photos", "readonly",  s => s.get(id)),
+  putPhoto:  (id, b) => tx("photos", "readwrite", s => s.put(b, id)),
+  delPhoto:  (id)    => tx("photos", "readwrite", s => s.delete(id)),
+};
+
+/* ============================================================
+   Zustand
+   ============================================================ */
+const MAX_PX = 1800;          // längste Kante des gespeicherten Fotos
+const THUMB_W = 320;
+let cur = null;               // aktuelles Blatt (meta-Objekt)
+let curURL = null;            // ObjectURL des Fotos
+let view = {s:1, x:0, y:0};
+let fitScale = 1;
+let sel = null;               // ausgewählte Feld-ID
+let lastSize = null;          // gemerkte Schriftgröße (Bild-Pixel)
+
+const $ = (id) => document.getElementById(id);
+const area = $("area"), sheet = $("sheet"), sheetImg = $("sheetImg");
+const fieldbar = $("fieldbar");
+const fieldEls = new Map();   // id -> {wrap, ta}
+
+const de = (ts) => new Date(ts).toLocaleDateString("de-DE", {day:"2-digit", month:"2-digit", year:"numeric"});
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+
+/* ============================================================
+   Liste
+   ============================================================ */
+async function showList(){
+  $("scrEdit").classList.remove("on");
+  $("scrList").classList.add("on");
+  let metas;
+  try{
+    metas = (await store.allMeta()).sort((a,b) => b.updated - a.updated);
+  }catch(err){
+    console.error(err);
+    $("grid").innerHTML = "";
+    $("emptyBox").hidden = true;
+    $("quota").innerHTML = "<b>Der Speicher dieses Browsers ist nicht verfügbar.</b><br>" +
+      "Die App braucht IndexedDB. In privaten Fenstern und in eingebetteten Vorschauen " +
+      "ist das gesperrt. Öffne die App über eine richtige Adresse (https://… oder " +
+      "http://localhost) in Safari.<br><small>" + (err && err.message ? err.message : "") + "</small>";
+    return;
+  }
+  const grid = $("grid");
+  grid.innerHTML = "";
+  $("emptyBox").hidden = metas.length > 0;
+  for (const m of metas){
+    const card = document.createElement("div");
+    card.className = "card";
+    const open = document.createElement("button");
+    open.className = "thumbwrap";
+    open.innerHTML = m.thumb ? '<img alt="">' : "";
+    if (m.thumb) open.firstChild.src = m.thumb;
+    open.onclick = () => openSheet(m.id);
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    const t = document.createElement("div");
+    t.className = "t";
+    const b = document.createElement("b");
+    b.textContent = m.title && m.title.trim() ? m.title : "Ohne Titel";
+    const s = document.createElement("span");
+    const n = (m.fields || []).length;
+    s.textContent = de(m.created) + " · " + (n === 1 ? "1 Textfeld" : n + " Textfelder");
+    t.append(b, s);
+    const del = document.createElement("button");
+    del.className = "del"; del.textContent = "🗑"; del.title = "Löschen";
+    del.onclick = async (e) => {
+      e.stopPropagation();
+      if (!confirm("Dieses Arbeitsblatt endgültig löschen?")) return;
+      await store.delMeta(m.id); await store.delPhoto(m.id);
+      showList();
+    };
+    meta.append(t, del);
+    card.append(open, meta);
+    grid.append(card);
+  }
+  quota();
+}
+
+async function quota(){
+  const el = $("quota");
+  if (!navigator.storage || !navigator.storage.estimate){ el.textContent = ""; return; }
+  try{
+    const {usage, quota} = await navigator.storage.estimate();
+    const mb = (n) => (n/1048576).toFixed(n > 104857600 ? 0 : 1).replace(".", ",");
+    el.textContent = "Belegt: " + mb(usage) + " MB von " + mb(quota) + " MB auf diesem iPad";
+  }catch(e){ el.textContent = ""; }
+}
+
+/* ============================================================
+   Foto aufnehmen / auswählen
+   ============================================================ */
+$("btnNew").onclick = $("btnNew2").onclick = () => $("fileIn").click();
+$("fileIn").onchange = async (e) => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  $("loader").classList.add("on");
+  try{
+    const {blob, w, h, thumb} = await prepare(file);
+    const id = uid(), now = Date.now();
+    const meta = {id, title:"", created:now, updated:now, w, h, thumb, fields:[]};
+    await store.putPhoto(id, blob);
+    await store.putMeta(meta);
+    await openSheet(id);
+  }catch(err){
+    console.error(err);
+    alert((err && err.message ? err.message : "Das Foto konnte nicht geladen werden.")
+          + (err && err.detail ? "\n\nTechnische Details:\n" + err.detail : ""));
+  }finally{
+    $("loader").classList.remove("on");
+  }
+};
+
+/* Bild öffnen: drei Wege, weil je nach Umgebung ein anderer scheitert.
+   1. createImageBitmap  – braucht keine URL, dreht EXIF-Bilder richtig
+   2. Data-URL           – funktioniert auch in abgeschotteten iframes
+   3. Blob-URL           – ältere Browser                                */
+function fileToDataURL(file){
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload  = () => res(fr.result);
+    fr.onerror = () => rej(new Error("FileReader"));
+    fr.readAsDataURL(file);
+  });
+}
+function loadViaImg(src){
+  return new Promise((res, rej) => {
+    const im = new Image();
+    im.onload  = () => res({d:im, w:im.naturalWidth, h:im.naturalHeight});
+    im.onerror = () => rej(new Error("Image-Element"));
+    im.src = src;
+  });
+}
+async function decodeImage(file){
+  const tried = [];
+  if (window.createImageBitmap){
+    try{
+      const b = await createImageBitmap(file, {imageOrientation:"from-image"});
+      return {d:b, w:b.width, h:b.height};
+    }catch(e){ tried.push("createImageBitmap: " + e.message); }
+  }
+  try{ return await loadViaImg(await fileToDataURL(file)); }
+  catch(e){ tried.push("Data-URL: " + e.message); }
+  try{
+    const u = URL.createObjectURL(file);
+    try{ return await loadViaImg(u); } finally{ URL.revokeObjectURL(u); }
+  }catch(e){ tried.push("Blob-URL: " + e.message); }
+  const err = new Error("Dieses Bild kann der Browser nicht öffnen (" + (file.type || "Format unbekannt") + ").");
+  err.detail = tried.join(" | ");
+  throw err;
+}
+
+async function prepare(file){
+  const src = await decodeImage(file);
+  const k = Math.min(1, MAX_PX / Math.max(src.w, src.h));
+  const w = Math.max(1, Math.round(src.w * k)), h = Math.max(1, Math.round(src.h * k));
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  const cx = c.getContext("2d");
+  cx.fillStyle = "#fff"; cx.fillRect(0, 0, w, h);
+  cx.drawImage(src.d, 0, 0, w, h);
+  if (src.d.close) src.d.close();
+
+  const tc = document.createElement("canvas");
+  const tw = Math.min(THUMB_W, w);
+  tc.width = tw; tc.height = Math.max(1, Math.round(h * tw / w));
+  tc.getContext("2d").drawImage(c, 0, 0, tc.width, tc.height);
+  const thumb = tc.toDataURL("image/jpeg", .7);
+
+  let blob = await new Promise((r) => c.toBlob(r, "image/jpeg", .86));
+  if (!blob){
+    try{ blob = await (await fetch(c.toDataURL("image/jpeg", .86))).blob(); }
+    catch(e){ throw new Error("Das verkleinerte Bild konnte nicht erzeugt werden."); }
+  }
+  return {blob, w, h, thumb};
+}
+
+/* ============================================================
+   Editor öffnen / schließen
+   ============================================================ */
+async function openSheet(id){
+  const meta = await store.getMeta(id);
+  const blob = await store.getPhoto(id);
+  if (!meta || !blob){ alert("Dieses Arbeitsblatt ist nicht mehr vorhanden."); return showList(); }
+  cur = meta;
+  if (curURL) URL.revokeObjectURL(curURL);
+  curURL = URL.createObjectURL(blob);
+  sheetImg.src = curURL;
+  sheet.style.width = meta.w + "px";
+  sheet.style.height = meta.h + "px";
+  sheetImg.style.width = "100%";
+  sheetImg.style.height = "100%";
+  sheetImg.style.display = "block";
+  $("titleIn").value = meta.title || "";
+  select(null);
+  $("scrList").classList.remove("on");
+  $("scrEdit").classList.add("on");
+  buildFields();
+  fit();
+}
+
+$("btnBack").onclick = async () => {
+  await flush();
+  setPlacing(false);
+  select(null);
+  cur = null;
+  showList();
+};
+
+$("titleIn").oninput = () => { if (cur){ cur.title = $("titleIn").value; save(); } };
+
+/* ============================================================
+   Ansicht: Zoom & Verschieben
+   ============================================================ */
+function applyView(){
+  sheet.style.transform = "translate(" + view.x + "px," + view.y + "px) scale(" + view.s + ")";
+  $("zoomLbl").textContent = Math.round(view.s / fitScale * 100) + "%";
+  layoutFields();
+}
+function fit(){
+  if (!cur) return;
+  const r = area.getBoundingClientRect();
+  const pad = 16;
+  fitScale = Math.min((r.width - pad*2) / cur.w, (r.height - pad*2) / cur.h);
+  view.s = fitScale;
+  view.x = (r.width  - cur.w * view.s) / 2;
+  view.y = (r.height - cur.h * view.s) / 2;
+  applyView();
+}
+function zoomAt(f, cx, cy){
+  const r = area.getBoundingClientRect();
+  const px = cx - r.left, py = cy - r.top;
+  const ns = clamp(view.s * f, fitScale * .8, fitScale * 8);
+  const k = ns / view.s;
+  view.x = px - (px - view.x) * k;
+  view.y = py - (py - view.y) * k;
+  view.s = ns;
+  applyView();
+}
+$("btnZoomIn").onclick  = () => { const r = area.getBoundingClientRect(); zoomAt(1.3, r.left + r.width/2, r.top + r.height/2); };
+$("btnZoomOut").onclick = () => { const r = area.getBoundingClientRect(); zoomAt(1/1.3, r.left + r.width/2, r.top + r.height/2); };
+$("btnFit").onclick = fit;
+
+const toImg = (cx, cy) => {
+  const r = area.getBoundingClientRect();
+  return {x:(cx - r.left - view.x) / view.s, y:(cy - r.top - view.y) / view.s};
+};
+
+/* ============================================================
+   Textfelder
+   ============================================================ */
+function defaultSize(){ return lastSize || Math.max(18, Math.round(cur.h / 46)); }
+
+function buildFields(){
+  for (const {wrap} of fieldEls.values()) wrap.remove();
+  fieldEls.clear();
+  for (const f of cur.fields) makeField(f);
+  layoutFields();
+}
+
+function makeField(f){
+  const wrap = document.createElement("div");
+  wrap.className = "field";
+  const ta = document.createElement("textarea");
+  ta.value = f.text || "";
+  ta.rows = 1;
+  ta.setAttribute("autocapitalize", "sentences");
+  ta.setAttribute("spellcheck", "true");
+  ta.setAttribute("enterkeyhint", "enter");
+  const grip = document.createElement("div");
+  grip.className = "grip"; grip.textContent = "✥";
+  const handle = document.createElement("div");
+  handle.className = "handle"; handle.textContent = "↔";
+  wrap.append(ta, grip, handle);
+  area.append(wrap);
+  fieldEls.set(f.id, {wrap, ta});
+
+  ta.addEventListener("input", () => {
+    f.text = ta.value;
+    autoGrow(f);
+    save();
+  });
+  ta.addEventListener("focus", () => {
+    select(f.id);
+    setTimeout(() => ensureVisible(f), 350);
+  });
+  ta.addEventListener("keydown", (e) => {
+    if (e.key === "Escape"){ ta.blur(); select(null); }
+  });
+  ta.addEventListener("blur", () => { flush(); });
+
+  dragBind(grip, f, "move");
+  dragBind(handle, f, "width");
+  return wrap;
+}
+
+function autoGrow(f){
+  const e = fieldEls.get(f.id); if (!e) return;
+  e.ta.style.height = "auto";
+  e.ta.style.height = e.ta.scrollHeight + "px";
+}
+
+function layoutFields(){
+  if (!cur) return;
+  const r = area.getBoundingClientRect();
+  for (const f of cur.fields){
+    const e = fieldEls.get(f.id); if (!e) continue;
+    const px = f.x * view.s + view.x, py = f.y * view.s + view.y;
+    e.wrap.style.left = px + "px";
+    e.wrap.style.top  = py + "px";
+    e.wrap.style.width = (f.w * view.s) + "px";
+    e.ta.style.fontSize = Math.max(6, f.size * view.s) + "px";
+    e.ta.style.borderRadius = (3 * view.s) + "px";
+    e.ta.style.padding = (2 * view.s) + "px " + (4 * view.s) + "px";
+    autoGrow(f);
+    const off = px < -50 || py < -50 || px > r.width + 50 || py > r.height + 50;
+    e.wrap.style.visibility = off ? "hidden" : "visible";
+  }
+}
+
+function select(id){
+  sel = id;
+  for (const [fid, e] of fieldEls) e.wrap.classList.toggle("sel", fid === id);
+  const f = curField();
+  fieldbar.classList.toggle("on", !!f);
+  $("sizeLbl").textContent = f ? f.size + " px" : "–";
+}
+const curField = () => cur && sel ? cur.fields.find(f => f.id === sel) : null;
+
+function addField(ix, iy){
+  const size = defaultSize();
+  const margin = Math.round(cur.w * .03);
+  const x = clamp(ix, 0, cur.w - 40);
+  const w = clamp(cur.w - x - margin, Math.round(cur.w * .12), Math.round(cur.w * .9));
+  const f = {id:uid(), x:Math.round(x), y:Math.round(clamp(iy - size * .75, 0, cur.h - 10)), w:Math.round(w), size, text:""};
+  cur.fields.push(f);
+  makeField(f);
+  layoutFields();
+  select(f.id);
+  save();
+  const e = fieldEls.get(f.id);
+  e.ta.focus();
+  setTimeout(() => ensureVisible(f), 350);
+}
+
+$("btnAdd").onclick = () => setPlacing(!area.classList.contains("placing"));
+function setPlacing(on){
+  area.classList.toggle("placing", on);
+  $("btnAdd").textContent = on ? "Abbrechen" : "+ Textfeld";
+  if (on) select(null);
+}
+
+$("btnBigger").onclick  = () => sizeStep(1.15);
+$("btnSmaller").onclick = () => sizeStep(1/1.15);
+function sizeStep(k){
+  const f = curField(); if (!f) return;
+  f.size = clamp(Math.round(f.size * k), 10, Math.round(cur.h / 6));
+  lastSize = f.size;
+  layoutFields(); select(f.id); save();
+}
+$("btnWide").onclick   = () => widthStep(1.12);
+$("btnNarrow").onclick = () => widthStep(1/1.12);
+function widthStep(k){
+  const f = curField(); if (!f) return;
+  f.w = clamp(Math.round(f.w * k), Math.round(cur.w * .08), cur.w - f.x);
+  layoutFields(); save();
+}
+$("btnDel").onclick = () => {
+  const f = curField(); if (!f) return;
+  if (f.text.trim() && !confirm("Textfeld mit Inhalt löschen?")) return;
+  const e = fieldEls.get(f.id);
+  if (e) e.wrap.remove();
+  fieldEls.delete(f.id);
+  cur.fields = cur.fields.filter(x => x.id !== f.id);
+  select(null); save();
+};
+$("btnDone").onclick = () => {
+  const f = curField();
+  if (f && !f.text.trim()){ $("btnDel").onclick(); return; }
+  const e = f && fieldEls.get(f.id);
+  if (e) e.ta.blur();
+  select(null);
+};
+
+/* Bildschirmtastatur: Feld sichtbar halten */
+function visibleBottom(){
+  const vv = window.visualViewport;
+  return vv ? vv.offsetTop + vv.height : window.innerHeight;
+}
+function ensureVisible(f){
+  const e = fieldEls.get(f.id); if (!e) return;
+  const r = area.getBoundingClientRect();
+  const top = r.top + f.y * view.s + view.y;
+  const h = e.ta.offsetHeight;
+  const limit = visibleBottom() - fieldbar.offsetHeight - 14;
+  if (top + h > limit || top < r.top + 8){
+    const want = Math.max(r.top + 12, Math.min(limit - h - 10, r.top + (limit - r.top) * .3));
+    view.y += want - top;
+    applyView();
+  }
+}
+if (window.visualViewport){
+  const onVV = () => {
+    const vv = window.visualViewport;
+    const kb = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
+    document.documentElement.style.setProperty("--kb", kb + "px");
+    const f = curField(); if (f && kb > 0) setTimeout(() => ensureVisible(f), 60);
+  };
+  window.visualViewport.addEventListener("resize", onVV);
+  window.visualViewport.addEventListener("scroll", onVV);
+}
+
+/* ============================================================
+   Zeiger: Tippen, Verschieben, Pinch-Zoom
+   ============================================================ */
+const ptrs = new Map();
+let gesture = null, panning = null, moved = false;
+
+area.addEventListener("pointerdown", (e) => {
+  if (e.target.tagName === "TEXTAREA") return;
+  if (e.target.classList.contains("grip") || e.target.classList.contains("handle")) return;
+  if (e.target.closest && e.target.closest("#fieldbar")) return;
+  ptrs.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if (ptrs.size === 1){
+    moved = false;
+    panning = {x:e.clientX, y:e.clientY, vx:view.x, vy:view.y, t:Date.now()};
+  } else if (ptrs.size === 2){
+    panning = null;
+    const [a, b] = [...ptrs.values()];
+    gesture = {d:Math.hypot(a.x-b.x, a.y-b.y), s:view.s, x:view.x, y:view.y,
+               mx:(a.x+b.x)/2, my:(a.y+b.y)/2};
+    moved = true;
+  }
+}, {passive:true});
+
+area.addEventListener("pointermove", (e) => {
+  if (!ptrs.has(e.pointerId)) return;
+  ptrs.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if (gesture && ptrs.size >= 2){
+    const [a, b] = [...ptrs.values()];
+    const d = Math.hypot(a.x-b.x, a.y-b.y);
+    const ns = clamp(gesture.s * (d / gesture.d), fitScale * .8, fitScale * 8);
+    const r = area.getBoundingClientRect();
+    const px = gesture.mx - r.left, py = gesture.my - r.top;
+    const k = ns / gesture.s;
+    view.s = ns;
+    view.x = px - (px - gesture.x) * k + ((a.x+b.x)/2 - gesture.mx);
+    view.y = py - (py - gesture.y) * k + ((a.y+b.y)/2 - gesture.my);
+    applyView();
+  } else if (panning){
+    const dx = e.clientX - panning.x, dy = e.clientY - panning.y;
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) moved = true;
+    if (moved){ view.x = panning.vx + dx; view.y = panning.vy + dy; applyView(); }
+  }
+}, {passive:true});
+
+function endPtr(e){
+  const was = ptrs.size;
+  ptrs.delete(e.pointerId);
+  if (ptrs.size < 2) gesture = null;
+  if (was === 1 && !moved){
+    const p = toImg(e.clientX, e.clientY);
+    if (area.classList.contains("placing")){
+      if (p.x >= 0 && p.y >= 0 && p.x <= cur.w && p.y <= cur.h){ setPlacing(false); addField(p.x, p.y); }
+    } else if (sel){
+      const f = curField(), e2 = f && fieldEls.get(f.id);
+      if (e2) e2.ta.blur();
+      select(null);
+    }
+  }
+  if (ptrs.size === 0) panning = null;
+}
+area.addEventListener("pointerup", endPtr, {passive:true});
+area.addEventListener("pointercancel", endPtr, {passive:true});
+
+/* Griff und Breiten-Anfasser ziehen */
+function dragBind(el, f, mode){
+  el.addEventListener("pointerdown", (ev) => {
+    ev.preventDefault(); ev.stopPropagation();
+    el.setPointerCapture(ev.pointerId);
+    const s0 = {cx:ev.clientX, cy:ev.clientY, x:f.x, y:f.y, w:f.w};
+    select(f.id);
+    const move = (e2) => {
+      const dx = (e2.clientX - s0.cx) / view.s, dy = (e2.clientY - s0.cy) / view.s;
+      if (mode === "move"){
+        f.x = Math.round(clamp(s0.x + dx, -f.w * .2, cur.w - 20));
+        f.y = Math.round(clamp(s0.y + dy, -20, cur.h - 10));
+      } else {
+        f.w = Math.round(clamp(s0.w + dx, Math.round(cur.w * .06), cur.w * 1.05 - f.x));
+      }
+      layoutFields();
+    };
+    const up = () => {
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", up);
+      el.removeEventListener("pointercancel", up);
+      save();
+    };
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
+  });
+}
+
+/* Bluetooth-Tastatur: Pfeiltasten verschieben das gewählte Feld */
+window.addEventListener("keydown", (e) => {
+  if (!cur || !sel) return;
+  if (document.activeElement && document.activeElement.tagName === "TEXTAREA") return;
+  const f = curField(); if (!f) return;
+  const step = e.shiftKey ? 20 : 4;
+  const d = {ArrowLeft:[-step,0], ArrowRight:[step,0], ArrowUp:[0,-step], ArrowDown:[0,step]}[e.key];
+  if (d){ e.preventDefault(); f.x += d[0]; f.y += d[1]; layoutFields(); save(); }
+  else if (e.key === "Backspace" || e.key === "Delete"){ e.preventDefault(); $("btnDel").onclick(); }
+});
+
+/* ============================================================
+   Speichern (verzögert) + Fensteränderungen
+   ============================================================ */
+let saveT = null;
+function save(){
+  if (!cur) return;
+  cur.updated = Date.now();
+  clearTimeout(saveT);
+  saveT = setTimeout(() => {
+    if (!cur) return;
+    store.putMeta(JSON.parse(JSON.stringify(cur))).catch((err) => {
+      console.error(err);
+      alert("Speichern hat nicht funktioniert. Möglicherweise ist der Speicher voll.");
+    });
+  }, 400);
+}
+async function flush(){
+  clearTimeout(saveT);
+  if (cur) { try{ await store.putMeta(JSON.parse(JSON.stringify(cur))); }catch(e){ console.error(e); } }
+}
+window.addEventListener("pagehide", () => { flush(); });
+document.addEventListener("visibilitychange", () => { if (document.hidden) flush(); });
+
+let rzT = null;
+window.addEventListener("resize", () => {
+  clearTimeout(rzT);
+  rzT = setTimeout(() => { if (cur){ layoutFields(); applyView(); } }, 120);
+});
+window.addEventListener("orientationchange", () => setTimeout(() => { if (cur) fit(); }, 350));
+document.addEventListener("gesturestart", (e) => e.preventDefault());
+
+/* ============================================================
+   Start
+   ============================================================ */
+showList();
+if ("serviceWorker" in navigator){
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+</script>
+</body>
+</html>
